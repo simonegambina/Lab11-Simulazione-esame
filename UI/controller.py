@@ -8,6 +8,7 @@ class Controller:
         # the model, which implements the logic of the program and holds the data
         self._model = model
         self._genreValue = None
+        self._artistValue = None
 
     def fillDDGenre(self):
         generi = self._model.getGenres()
@@ -23,6 +24,7 @@ class Controller:
 
     def _choiceGenre(self, e):
         self._genreValue = e.control.data
+        self.fillDDartisti(self._genreValue)
 
     def handleCreaGrafo(self, e):
         if self._genreValue is None:
@@ -58,6 +60,59 @@ class Controller:
 
         self._view.update_page()
 
+    def fillDDartisti(self, genere):
+        artisti = self._model.getNodes(genere)
+
+        self._view._ddArtist.options = [
+            ft.dropdown.Option(key=str(a.ArtistId), text=str(a)) for a in artisti]
+
+        self._view.update_page()
 
     def handleCammino(self,e):
-        pass
+        self._view._txt_result.controls.clear()
+
+        nNodi, nArchi = self._model.getGraphDetails()
+
+        if nNodi == 0:
+            self._view._txt_result.controls.append(
+                ft.Text("Prima devi creare il grafo!", color="red"))
+            self._view.update_page()
+            return
+
+        idArtista = self._view._ddArtist.value
+
+        if idArtista is None or idArtista == "":
+            self._view._txt_result.controls.append(
+                ft.Text("Selezionare un artista!", color="red"))
+            self._view.update_page()
+            return
+
+        cammino = self._model.cercaPercorso(idArtista)
+
+        if cammino is None or len(cammino) == 0:
+            self._view._txt_result.controls.append(
+                ft.Text("Nessun percorso trovato.", color="red"))
+            self._view.update_page()
+            return
+
+        self._view._txt_result.controls.append(
+            ft.Text("Percorso più lungo trovato.", color="green"))
+
+        self._view._txt_result.controls.append(
+            ft.Text(f"Numero nodi nel percorso: {len(cammino)}"))
+
+        self._view._txt_result.controls.append(
+            ft.Text(f"Numero archi nel percorso: {len(cammino) - 1}"))
+
+        for i in range(len(cammino)):
+
+            if i < len(cammino) - 1:
+                peso = self._model.getPesoArco(cammino[i], cammino[i + 1])
+                self._view._txt_result.controls.append(
+                    ft.Text(f"{i + 1}. {cammino[i]} → {cammino[i + 1]} | peso: {peso}"))
+
+            else:
+                self._view._txt_result.controls.append(
+                    ft.Text(f"{i + 1}. {cammino[i]}"))
+
+        self._view.update_page()

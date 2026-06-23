@@ -1,3 +1,5 @@
+import copy
+
 import networkx as nx
 
 from database.DAO import DAO
@@ -8,12 +10,46 @@ class Model:
     def __init__(self):
         self._grafo = nx.DiGraph()
         self._nodes = []
+        self._idMap = {}
+        self._bestPath = []
+
+    def cercaPercorso(self, idArtista):
+        self._bestPath = []
+
+        idArtista = int(idArtista)
+        if idArtista not in self._idMap:
+            return []
+
+        start = self._idMap[idArtista]
+
+        parziale = [start]
+
+        self._ricorsione(parziale, None)
+
+        return self._bestPath
+
+    def _ricorsione(self, parziale, lastPeso):
+
+            if len(parziale) > len(self._bestPath):
+                self._bestPath = copy.deepcopy(parziale)
+
+            ultimo = parziale[-1]
+
+            for vicino in self._grafo.successors(ultimo):
+                peso = self._grafo[ultimo][vicino]["weight"]
+
+            if vicino not in parziale and (lastPeso is None or peso > lastPeso):
+                parziale.append(vicino)
+                self._ricorsione(parziale, peso)
+                parziale.pop()
 
     def buildGraphP(self, genre):
         self._grafo.clear()
 
         self._nodes = DAO.getNodes(genre)
         self._grafo.add_nodes_from(self._nodes)
+
+        self._idMap = {a.ArtistId: a for a in self._nodes}
 
         edges = DAO.getEdges(genre)
 
@@ -69,4 +105,10 @@ class Model:
 
     def getGenres(self):
         return DAO.getGenres()
+
+    def getNodes(self, genere):
+        return DAO.getNodes(genere)
+
+    def getPesoArco(self, u, v):
+        return self._grafo[u][v]["weight"]
 
